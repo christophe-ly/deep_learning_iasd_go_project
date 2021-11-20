@@ -34,9 +34,18 @@ golois.getValidation (input_data, policy, value, end)
 
 input = keras.Input(shape=(19, 19, planes), name='board')
 x = layers.Conv2D(filters, 1, activation='relu', padding='same')(input)
-for i in range (6):
+for i in range (8):
     x1 = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
     x1 = layers.Conv2D(filters, 3, padding='same')(x1)
+    x = layers.add([x1,x])
+    x = layers.ReLU()(x)
+    x = layers.BatchNormalization()(x)
+    
+for i in range (2): # KataGo Improvement using Global Pooling
+    x1 = layers.Conv2D(filters, 3, activation='relu', padding='same')(x)
+    x1 = layers.Conv2D(filters, 3, padding='same')(x1)
+    x1 = layers.GlobalAveragePooling2D()(x1)
+    x1 = layers.Dense(filters)(x1)
     x = layers.add([x1,x])
     x = layers.ReLU()(x)
     x = layers.BatchNormalization()(x)
