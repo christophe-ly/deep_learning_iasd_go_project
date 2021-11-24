@@ -13,6 +13,48 @@ epochs = 20
 batch = 128
 filters = 64
 
+def depthwiseconv(x, strides: int):
+  x = layers.DepthwiseConv2D(3, strides=strides, padding= 'same' if strides == 1 else 'valid', use_bias= False)(x)
+  x = layers.BatchNormalization()(x)
+  x = layers.Activation('swish')(x)
+  return x
+
+def pointwiseconv(x, filters: int, linear: bool):
+  x = layers.Conv2D(filters = filters, kernel_size= (1,1), strides= (1,1), padding= 'same', use_bias= False)(x)
+  x = layers.BatchNormalization()(x)
+  if linear == False:
+    x = layers.Activation('swish')(x)
+  return x
+
+def standardconv(x):
+  x = layers.Conv2D(filters= 32, kernel_size= (1,1), use_bias= False)(x)
+  x = layers.BatchNormalization()(x)
+  x = layers.Activation('swish')(x)
+  return x
+
+def inverted_residual_block(x, strides_depthwise: int, filter_pointwise: int, expansion: int):
+  x1 = pointwiseconv(x, filters = filter_pointwise * expansion, linear = False)
+  x1 = depthwiseconv(x1, strides = strides_depthwise)
+  x1 = pointwiseconv(x1, filters = filter_pointwise, linear = True)
+  if strides_depthwise == 1 and x.shape[-1] == filter_pointwise:
+    return layers.add([x1,x])
+  else:
+    return x1
+
+def bottleneck_block(x, s: int, c: int, t: int, n: int):
+  ''' 
+    s : strides
+    c : output channels
+    t : expansion factor
+    n : repeat
+  '''
+  x = inverted_residual_block(x, strides_depthwise= s, filter_pointwise= c, expansion= t)
+  for i in range(n-1):
+    x = inverted_residual_block(x, strides_depthwise= 1, filter_pointwise= c, expansion= t)
+  return x
+
+ 
+
 input_data = np.random.randint(2, size=(N, 19, 19, planes))
 input_data = input_data.astype ('float32')
 
@@ -33,15 +75,18 @@ golois.getValidation (input_data, policy, value, end)
 
 
 input = keras.Input(shape=(19, 19, planes), name='board')
-x = layers.Conv2D(filters, 1, activation='relu', padding='same')(input)
-for i in range (8):
-    x1 = layers.Conv2D(filters, 3, activation='swish', padding='same')(x)
-    x1 = layers.Conv2D(filters, 3, padding='same')(x1)
-    x = layers.add([x1,x])
-    x = layers.Activation('swish')(x)
-    x = layers.BatchNormalization()(x)
-    
-for i in range (2): # KataGo Improvement using Global Pooling
+x = standardconv(input)
+x = bottleneck_block(x, s=1, c=16, t=1, n=1)
+x = bottleneck_block(x, s=1, c=24, t=2, n=2)
+x = bottleneck_block(x, s=1, c=32, t=1, n=3)
+x = bottleneck_block(x, s=1, c=64, t=2, n=4)
+x = bottleneck_block(x, s=1, c=96, t=2, n=3)
+x = bottleneck_block(x, s=1, c=160, t=1, n=3)
+x = bottleneck_block(x, s=1, c=320, t=1, n=1)
+x = pointwiseconv(x, filters = 1280, linear = False)
+
+'''
+for i in range (2):
     x1 = layers.Conv2D(filters, 3, activation='swish', padding='same')(x)
     x1 = layers.Conv2D(filters, 3, padding='same')(x1)
     x1 = layers.GlobalAveragePooling2D()(x1)
@@ -49,6 +94,8 @@ for i in range (2): # KataGo Improvement using Global Pooling
     x = layers.add([x1,x])
     x = layers.Activation('swish')(x)
     x = layers.BatchNormalization()(x)
+'''
+
 policy_head = layers.Conv2D(1, 1, activation='swish', padding='same', use_bias = False, kernel_regularizer=regularizers.l2(0.0001))(x)
 policy_head = layers.Flatten()(policy_head)
 policy_head = layers.Activation('softmax', name='policy')(policy_head)
