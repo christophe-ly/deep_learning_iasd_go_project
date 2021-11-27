@@ -6,7 +6,6 @@ from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, Reshape
-from MobileNetBaseFile import MobileNetBase 
 
 
 import golois
