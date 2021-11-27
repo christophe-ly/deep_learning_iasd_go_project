@@ -6,7 +6,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, Reshape
-from MobileNetBaseFile import MobileNetBase 
+
 
 
 import golois
@@ -14,7 +14,7 @@ import golois
 planes = 31
 moves = 361
 N = 10000
-epochs = 400
+epochs = 100
 batch = 128
 filters = 64
 
@@ -41,7 +41,7 @@ if Exec:
 
 
 
-model = keras.models.load_model('mb3_1M_200_0005.h5.h5')
+model = keras.models.load_model('mb2_100ep_0005.h5')
 
 model.compile(optimizer=keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9),
               loss={'policy': 'categorical_crossentropy', 'value': 'binary_crossentropy'},
@@ -60,4 +60,4 @@ for i in range (1, epochs + 1):
                               [policy, value], verbose = 0, batch_size=batch)
         print ("val =", val)
 
-model.save("mb3_1M_600_00005.h5")
+model.save("mb2_200ep_0005.h5")
