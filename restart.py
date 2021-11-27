@@ -7,8 +7,6 @@ from tensorflow.keras import regularizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, Reshape
 
-
-
 import golois
 
 planes = 31
@@ -40,7 +38,6 @@ if Exec:
     golois.getValidation (input_data, policy, value, end)
 
 
-
 model = keras.models.load_model('mb2_100ep_0005.h5')
 
 model.compile(optimizer=keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9),
@@ -61,3 +58,4 @@ for i in range (1, epochs + 1):
         print ("val =", val)
 
 model.save("mb2_200ep_0005.h5")
+
