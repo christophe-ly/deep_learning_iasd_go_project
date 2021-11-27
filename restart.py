@@ -58,4 +58,3 @@ for i in range (1, epochs + 1):
         print ("val =", val)
 
 model.save("mb2_200ep_0005.h5")
-
