@@ -114,7 +114,7 @@ model.compile(optimizer=keras.optimizers.SGD(learning_rate=0.005, momentum=0.9),
 
 for i in range (1, epochs + 1):
     print ('epoch ' + str (i))
-    golois.getBatch (input_data, policy, value, end, groups, i)
+    golois.getBatch (input_data, policy, value, end, groups, i * N)
     history = model.fit(input_data,
                         {'policy': policy, 'value': value}, 
                         epochs=1, batch_size=batch)
