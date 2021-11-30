@@ -9,9 +9,19 @@ import golois
 planes = 31
 moves = 361
 N = 10000
-epochs = 20
+epochs = 100
 batch = 128
 filters = 64
+
+
+def SE_Block(t,filters, ratio = 16):
+  se_shape = (1, 1, filters)
+  se = layers.GlobalAveragePooling2D()(t)
+  se = layers.Reshape(se_shape)(se)
+  se = layers.Dense(filters // ratio, activation = 'relu', use_bias = False)(se)
+  se = layers.Dense(filters, activation = 'sigmoid', use_bias = False)(se)
+  x = layers.multiply([t, se])
+  return x
 
 def depthwiseconv(x, strides: int):
   x = layers.DepthwiseConv2D(3, strides=strides, padding= 'same' if strides == 1 else 'valid', use_bias= False)(x)
@@ -37,6 +47,7 @@ def inverted_residual_block(x, strides_depthwise: int, filter_pointwise: int, ex
   x1 = depthwiseconv(x1, strides = strides_depthwise)
   x1 = pointwiseconv(x1, filters = filter_pointwise, linear = True)
   if strides_depthwise == 1 and x.shape[-1] == filter_pointwise:
+    x1 = SE_Block(x, filter_pointwise)
     return layers.add([x1,x])
   else:
     return x1
@@ -53,14 +64,6 @@ def bottleneck_block(x, s: int, c: int, t: int, n: int):
     x = inverted_residual_block(x, strides_depthwise= 1, filter_pointwise= c, expansion= t)
   return x
 
-def SE_Block(t,filters, ratio = 16):
-  se_shape = (1, 1, filters)
-  se = layers.GlobalAveragePooling2D()(t)
-  se = layers.Reshape(se_shape)(se)
-  se = layers.Dense(filters // ratio, activation = 'relu', use_bias = False)(se)
-  se = layers.Dense(filters, activation = 'sigmoid', use_bias = False)(se)
-  x = layers.multiply([t, se])
-  return x
 
 input_data = np.random.randint(2, size=(N, 19, 19, planes))
 input_data = input_data.astype ('float32')
@@ -85,13 +88,12 @@ input = keras.Input(shape=(19, 19, planes), name='board')
 x = standardconv(input)
 x = bottleneck_block(x, s=1, c=16, t=1, n=1)
 x = bottleneck_block(x, s=1, c=24, t=2, n=2)
-x = bottleneck_block(x, s=1, c=32, t=1, n=3)
+x = bottleneck_block(x, s=1, c=32, t=2, n=3)
 x = bottleneck_block(x, s=1, c=64, t=2, n=4)
 x = bottleneck_block(x, s=1, c=96, t=2, n=3)
-x = bottleneck_block(x, s=1, c=160, t=1, n=3)
-x = bottleneck_block(x, s=1, c=320, t=1, n=1)
+x = bottleneck_block(x, s=1, c=160, t=2, n=3)
+x = bottleneck_block(x, s=1, c=320, t=2, n=1)
 x = pointwiseconv(x, filters = 1280, linear = False)
-x = SE_Block(x, 32)
 
 '''
 for i in range (2):
