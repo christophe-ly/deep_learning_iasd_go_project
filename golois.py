@@ -53,7 +53,14 @@ def bottleneck_block(x, s: int, c: int, t: int, n: int):
     x = inverted_residual_block(x, strides_depthwise= 1, filter_pointwise= c, expansion= t)
   return x
 
- 
+def SE_Block(t,filters, ratio = 16):
+  se_shape = (1, 1, filters)
+  se = layers.GlobalAveragePooling2D()(t)
+  se = layers.Reshape(se_shape)(se)
+  se = layers.Dense(filters // ratio, activation = 'relu', use_bias = False)(se)
+  se = layers.Dense(filters, activation = 'sigmoid', use_bias = False)(se)
+  x = layers.multiply([t, se])
+  return x
 
 input_data = np.random.randint(2, size=(N, 19, 19, planes))
 input_data = input_data.astype ('float32')
@@ -84,6 +91,7 @@ x = bottleneck_block(x, s=1, c=96, t=2, n=3)
 x = bottleneck_block(x, s=1, c=160, t=1, n=3)
 x = bottleneck_block(x, s=1, c=320, t=1, n=1)
 x = pointwiseconv(x, filters = 1280, linear = False)
+x = SE_Block(x, 32)
 
 '''
 for i in range (2):
