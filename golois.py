@@ -3,6 +3,7 @@ import tensorflow.keras as keras
 import numpy as np
 from tensorflow.keras import layers 
 from tensorflow.keras import regularizers
+import gc
 
 import golois
 
@@ -47,7 +48,7 @@ def inverted_residual_block(x, strides_depthwise: int, filter_pointwise: int, ex
   x1 = depthwiseconv(x1, strides = strides_depthwise)
   x1 = pointwiseconv(x1, filters = filter_pointwise, linear = True)
   if strides_depthwise == 1 and x.shape[-1] == filter_pointwise:
-    x1 = SE_Block(x, filter_pointwise)
+    x1 = SE_Block(x1, filter_pointwise)
     return layers.add([x1,x])
   else:
     return x1
@@ -90,9 +91,9 @@ x = bottleneck_block(x, s=1, c=16, t=1, n=1)
 x = bottleneck_block(x, s=1, c=24, t=2, n=2)
 x = bottleneck_block(x, s=1, c=32, t=2, n=3)
 x = bottleneck_block(x, s=1, c=64, t=2, n=4)
-x = bottleneck_block(x, s=1, c=96, t=2, n=3)
-x = bottleneck_block(x, s=1, c=160, t=2, n=3)
-x = bottleneck_block(x, s=1, c=320, t=2, n=1)
+x = bottleneck_block(x, s=1, c=96, t=1, n=3)
+x = bottleneck_block(x, s=1, c=160, t=1, n=3)
+x = bottleneck_block(x, s=1, c=320, t=1, n=1)
 x = pointwiseconv(x, filters = 1280, linear = False)
 
 '''
@@ -128,10 +129,12 @@ for i in range (1, epochs + 1):
     history = model.fit(input_data,
                         {'policy': policy, 'value': value}, 
                         epochs=1, batch_size=batch)
+    if (i % 5 == 0):
+        gc.collect ()
     if (i % 10 == 0):
         golois.getValidation (input_data, policy, value, end)
         val = model.evaluate (input_data,
                               [policy, value], verbose = 0, batch_size=batch)
         print ("val =", val)
 
-model.save ('test.h5')
+model.save ('mbse_corr_100ep_0005.h5')

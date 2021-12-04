@@ -6,13 +6,13 @@ from tensorflow.keras import layers
 from tensorflow.keras import regularizers
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, GlobalAveragePooling2D, Reshape
-
+import gc
 import golois
 
 planes = 31
 moves = 361
 N = 10000
-epochs = 50
+epochs = 100
 batch = 128
 filters = 64
 
@@ -38,9 +38,9 @@ if Exec:
     golois.getValidation (input_data, policy, value, end)
 
 
-model = keras.models.load_model('mb2se_100_0005.h5')
+model = keras.models.load_model('model/mbse_corr_600ep_0005.h5')
 
-model.compile(optimizer=keras.optimizers.SGD(learning_rate=0.00005, momentum=0.9),
+model.compile(optimizer=keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9),
               loss={'policy': 'categorical_crossentropy', 'value': 'binary_crossentropy'},
               loss_weights={'policy' : 1.0, 'value' : 1.0},
               metrics={'policy': 'categorical_accuracy', 'value': 'mse'})
@@ -51,10 +51,12 @@ for i in range (1, epochs + 1):
     history = model.fit(input_data,
                         {'policy': policy, 'value': value}, 
                         epochs=1, batch_size=batch,verbose=0)
+    if (i% 5 == 0):
+        gc.collect()
     if (i % 10 == 0):
         golois.getValidation (input_data, policy, value, end)
         val = model.evaluate (input_data,
                               [policy, value], verbose = 0, batch_size=batch)
         print ("val =", val)
 
-model.save("mb2se_150ep_00005.h5")
+model.save("model/mbse_corr_700ep_0005.h5")
